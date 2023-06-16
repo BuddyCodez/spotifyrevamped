@@ -32,8 +32,8 @@ export default function IndexPage() {
 							<Tabs variant="light" aria-label="Queue" color="primary">
 								<Tab key="Tab1" title="Queue">
 									<div className="flex flex-col justify-center gap-3">
-										{queue && queue.map((song: any) => (
-											<Card
+										{queue && queue.map((song: any, index: any) => (
+											<Card key={index}
 												isBlurred
 												className="border-none bg-white/20 dark:bg-default-100/50 max-w-[610px]"
 												radius="2xl"
