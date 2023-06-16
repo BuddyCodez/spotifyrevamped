@@ -118,10 +118,6 @@ export default function SongPlayer() {
                             <div className="flex flex-col mt-3 gap-1">
                                 <Progress
                                     aria-label="Music progress"
-                                    classNames={{
-                                        filler: "bg-blue-500",
-                                        track: "bg-default-500/30",
-                                    }}
                                     color="default"
                                     size="sm"
                                     value={player ? compareTimes(timeline, currentSong?.duration)  : 0}
