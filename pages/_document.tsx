@@ -7,6 +7,8 @@ export default function Document() {
       <body className="min-h-screen bg-background font-sans antialiased">
         <Main />
         <NextScript />
+        <script src="https://www.youtube.com/iframe_api"></script>
+        <script src="https://www.youtube.com/player_api"></script>
       </body>
     </Html>
   )
