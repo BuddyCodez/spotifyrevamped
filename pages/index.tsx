@@ -19,9 +19,9 @@ export default function IndexPage() {
 	const { data: session } = useSession()
 	return (
 		<DefaultLayout>
-			<section className="flex flex-col items-center justify-center gap-4 " style={{ width: "100%", height: "100vh" }}>
-				<div className="flex justify-between items-center" style={{ width: "100%", height: "100%" }}>
-					<Card style={{ width: "100%", height: "450px" }} className="mt-5 mr-2">
+			<section className="flex flex-col  items-center justify-center gap-4 " style={{ width: "100%", height: "100vh", }}>
+				<div className="flex pc justify-between items-center " style={{ width: "100%", height: "50%" }}>
+					<Card style={{ width: "100%", height: "100%" }} className="mt-5 mr-2">
 						<CardHeader className="p-0 px-5 pt-2 pb-1">
 							<div className="flex justify-end items-center w-full">
 								<ThemeSwitch />
@@ -59,7 +59,7 @@ export default function IndexPage() {
 							</Tabs>
 						</div>
 					</Card>
-					<Card style={{ width: "100%", height: "450px" }} className="mt-5 ml-2">
+					<Card style={{ width: "100%", height: "100%" }} className="mt-5 ml-2">
 						<CardHeader className="p-0 px-5  pt-2 pb-1">
 							<div className="flex justify-end items-center w-full">
 								<Link isExternal href={siteConfig.links.github}>
@@ -104,6 +104,80 @@ export default function IndexPage() {
 						</div>
 					</Card>
 
+				</div>
+				<div className="flex mobile  justify-between items-center " style={{ width: "100%", height: "50%" }}>
+					<Card style={{ width: "100%", height: "100%" }} className="mt-5 mr-2">
+						<CardHeader className="p-0 px-5 pt-2 pb-1">
+							<div className="flex justify-end items-center w-full">
+								<ThemeSwitch />
+							</div>
+						</CardHeader>
+						<Divider />
+						<div className="flex">
+							<div className="justify-between p-4" style={{ width: "100%", height: "90%" }}>
+								<Tabs variant="light" aria-label="Queue" color="primary">
+									<Tab key="Tab1" title="Queue">
+										<div className="flex flex-col justify-center gap-3">
+											{queue && queue.map((song: any, index: any) => (
+												<Card key={index}
+													isBlurred
+													className="border-none bg-white/20 dark:bg-default-100/50 max-w-[610px]"
+													radius="2xl"
+													shadow="lg"
+													style={{
+														width: "70%",
+													}}
+												>
+													<CardBody>
+														<div className="flex flex-col gap-2">
+															<h1>{song.title}</h1>
+															<p>
+																{song.author}
+															</p>
+														</div>
+													</CardBody>
+												</Card>
+											))}
+										</div>
+									</Tab>
+									<Tab key="Tab2" title="Lyrics">
+									</Tab>
+										<Tab key="Tab3" title="Song">
+											<SongList />
+										</Tab>
+										<Tab key="Tab4" title="Chat">
+										</Tab>
+										<Tab key="Tab5" title="Users">
+											{session ? <>
+												<div className="flex justify-center items-center gap-2">
+													<Avatar src={session?.user?.image || ""} />
+													<h1>{session?.user?.name}</h1>
+													<Button
+														variant="solid"
+														color="secondary"
+														onPress={() => signOut()}
+														size="xs"
+													// startIcon={
+													// 	<BiLogOut />
+													// }
+													>
+														Logout
+													</Button>
+
+												</div>
+											</> : <Button
+												onPress={() => signIn("discord")}
+												variant="solid" color="primary" startIcon={
+													<DiscordIcon />
+												}>Login</Button>
+											}
+										</Tab>
+									
+								</Tabs>
+							</div>
+	
+					</div>
+					</Card>
 				</div>
 				<div className="player flex flex-col items-center justify-center " style={{ width: "100%", height: "100%" }}>
 					<SongPlayer />

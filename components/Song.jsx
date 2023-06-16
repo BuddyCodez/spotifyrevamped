@@ -88,13 +88,13 @@ const SongList = () => {
         {searchResults.map((song, index) => (
           <Card
             isBlurred
-            className="border-none bg-white/20 dark:bg-default-100/50 max-w-[610px] mt-2 mb-2"
+            className="border-none bg-white/20 dark:bg-default-100/50  mt-2 mb-2"
             radius="2xl"
             shadow="lg"
             key={index} 
             isPressable
             isHoverable
-            style={{ width: "450px" }}
+            style={{ width: "100%" }}
             onPress={() => {
                addToQueue(song);
             }}

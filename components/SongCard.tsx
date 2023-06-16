@@ -46,7 +46,7 @@ export default function SongPlayer() {
                 // console.log("formattedTime", formattedTime);
                 setTimeline(formattedTime);
                 return formattedTime;
-            
+
             }
         }
 
@@ -82,7 +82,7 @@ export default function SongPlayer() {
                     padding: "20px 20px 5px 5px"
                 }}>
                     <div className="grid grid-cols-6 md:grid-cols-12 gap-6 md:gap-4 items-center justify-center">
-                        <div className="relative col-span-6 md:col-span-4">
+                        <div className="relative col-span-6 md:col-span-4 sm:max-w-[200px]">
                             <Image
                                 isZoomed
                                 isBlurred
@@ -92,6 +92,7 @@ export default function SongPlayer() {
                                 shadow="lg"
                                 src={currentSong?.thumbnail}
                                 width="100%"
+
                             />
                         </div>
 
@@ -120,7 +121,7 @@ export default function SongPlayer() {
                                     aria-label="Music progress"
                                     color="default"
                                     size="sm"
-                                    value={player ? compareTimes(timeline, currentSong?.duration)  : 0}
+                                    value={player ? compareTimes(timeline, currentSong?.duration) : 0}
                                 />
                                 <div className="flex justify-between">
                                     <p className="text-sm">{player ? timeline : 0}</p>

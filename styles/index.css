@@ -1,3 +1,21 @@
 .scrollbar::-webkit-scrollbar {
   width: 10px;
 }
+.mobile {
+  visibility: hidden;
+  display: none;
+}
+.pc {
+  visibility: visible;
+  display: flex;
+}
+@media (max-width: 767px) {
+  .mobile  {
+    visibility: visible;
+    display: flex;
+  }
+  .pc {
+    visibility: hidden;
+    display: none;
+  }
+}

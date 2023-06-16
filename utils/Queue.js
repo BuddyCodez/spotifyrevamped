@@ -2,9 +2,12 @@ import playAudio from '@/components/AudioPlayer';
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import YouTubePlayer from 'youtube-player';
 const QueueContext = createContext();
+import { io } from 'socket.io-client';
+import { useSession } from 'next-auth/react';
 export const useQueue = () => useContext(QueueContext);
 
-export const QueueProvider = ({ children }) => {
+export const QueueProvider = ({ children, socket }) => {
+    const { data: session } = useSession();
     const [player, setPlayer] = useState(null);
     const [queue, setQueue] = useState([]);
     const [currentSong, setCurrentSong] = useState(null);
@@ -15,6 +18,7 @@ export const QueueProvider = ({ children }) => {
         // console.log('New queue:', newQueue);
         setQueue(newQueue);
     };
+   
     useEffect(() => {
         console.log('player', player);
         if (currentSong) {
