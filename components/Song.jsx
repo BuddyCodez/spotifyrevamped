@@ -85,49 +85,31 @@ const SongList = () => {
         height: "350px",
         width: "100%"
       }}>
-        {searchResults.map((song, index) => (
-          <Card
-            isBlurred
-            className="border-none bg-white/20 dark:bg-default-100/50  mt-2 mb-2"
-            radius="2xl"
-            shadow="lg"
-            key={index} 
-            isPressable
-            isHoverable
-            style={{ width: "100%" }}
-            onPress={() => {
+        <div className="p-3 flex flex-col items-center justify-center">
+{searchResults.map((song, index) => (
+          <div className="flex mt-2 mb-2 cursor-pointer" key={index} style={{ width: "90%" }}
+          onClick={() => {
                addToQueue(song);
             }}
-            
           >
-            <CardBody>
-              <div className="grid grid-cols-6 md:grid-cols-12 gap-6 md:gap-4 items-center justify-center">
-                <div className="relative col-span-6 md:col-span-4">
-                  <Image
-                    alt="Album cover"
-                    className="object-cover"
-                    height={200}
-                    shadow="lg"
-                    src={song?.thumbnail}
-                    width="100%"
-                    isZoomed
-                    isBlurred
-                  />
-                </div>
-                <div className="flex flex-col col-span-6 md:col-span-8">
-                  <div className="flex justify-between items-start">
-                    <div className="flex flex-col gap-0">
-                      <h3 className="font-semibold text-foreground/90">{song?.author}</h3>
-                      <h1 className="text-lg font-medium mt-2">{
-                        song?.title
-                      }</h1>
-                    </div>
-                  </div>
-                </div>
+            <div className="card flex items-center gap-4 rounded-lg" style={{width:"100%"}}>
+              <Image
+                src={song.thumbnail}
+                width={100}
+                height={100}
+                shadow="lg"
+                isZoomed
+                isBlurred
+                alt="Song Thumbnail"
+              />
+              <div className="flex flex-col gap-2 ">
+                <h3>{song?.title}</h3>
+                <p>{song?.author}</p>
               </div>
-            </CardBody>
-          </Card>
+            </div>
+            </div>
         ))}
+        </div>
       </div>}
     </div>
   );

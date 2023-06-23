@@ -1,0 +1,110 @@
+ const addToQueue = (song) => {
+        console.log('Adding to queue:', song);
+        const newSong = {...song, by: session ? session.user : {name: "Anonymous"}}
+        socket?.emit('addSong', newSong);
+    };
+    useEffect(() => {
+        if (socket) {
+            socket.emit('join', session ? session : {
+                user: {
+                    name: 'Anonymous'
+                }
+            });
+            socket.on("users", (data) => {
+                // console.log('users', data);
+                setUsers(data);
+            })
+            socket.on("queue", (data) => {
+                console.log('queue', data);
+                setQueue(data);
+            });
+
+        }
+})
+
+    useEffect(() => {
+        console.log('player', player);
+        if (currentSong) {
+            player?.playVideo();
+        }
+
+    }, [player]);
+    useEffect(() => {
+        if (player) {
+            player.on('stateChange', (event) => {
+                if (event.data == 0) {
+                    playNextSong();
+                    console.log('Next song =>', event.data);
+                } else {
+                    console.log('stateChange', event.data);
+                }
+            });
+        }
+    });
+    useEffect(() => {
+        console.log('Current queue:', queue);
+        if (socket) {
+            if (playing) return;
+            const FirstSong = queue[0];
+            socket.emit('play', FirstSong);
+            socket.on('current', (data) => {
+                console.log('current', data);
+                if (!currentSong) setCurrentSong(data);
+            });
+        }
+    }, [queue]);
+    const removeFromQueue = () => {
+        setQueue(queue.slice(1));
+        playNextSong();
+    };
+    const PlayCurrent = () => {
+        setPlaying(true);
+        player?.getPlayerState().then((state) => {
+            if (state === YT.PlayerState.PAUSED) {
+                player?.playVideo();
+                console.log('The video is paused.');
+            } else {
+                console.log('The video is playing or in another state.');
+            }
+        });
+    }
+    const playNextSong = () => {
+        if (queue.length === 0) {
+            setCurrentSong(null);
+            return;
+        }
+        if (socket) {
+            socket.emit('next');
+            socket.on('getnext', (data) => {
+                socket.emit('play', data);
+                setCurrentSong(data);
+            })
+
+            // setCurrentSong(nextSong);
+        }
+    };
+    const pause = () => {
+        player?.pauseVideo();
+        setPlaying(false);
+    };
+    const playPreviousSong = () => {
+        if (queue.length === 0 || !currentSong) {
+            return;
+        }
+
+        const updatedQueue = [currentSong, ...queue];
+        setCurrentSong(updatedQueue.pop());
+        setQueue(updatedQueue);
+    };
+
+    useEffect(() => {
+        if (currentSong) {
+            setPlaying(true);
+            if (!player)
+                setPlayer(YouTubePlayer('player-1', {
+                    videoId: currentSong.videoId
+                }));
+            else player?.loadVideoById(currentSong.videoId);
+            // playAudio(currentSong.videoId);
+        }
+    }, [currentSong]);

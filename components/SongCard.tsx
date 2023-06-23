@@ -1,6 +1,7 @@
-import { Card, CardFooter, Image, Button, Progress, CardBody } from "@nextui-org/react";
+import { Card, CardFooter, Image, Button, Progress, CardBody, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from "@nextui-org/react";
 import { HeartIcon } from "./HeartIcon";
 import { PauseCircleIcon } from "./PauseCircleIcon";
+import { PlayIcon } from "./PlayIcon";
 import { NextIcon } from "./NextIcon";
 import { PreviousIcon } from "./PreviousIcon";
 import { RepeatOneIcon } from "./RepeatOneIcon";
@@ -8,18 +9,21 @@ import { ShuffleIcon } from "./ShuffleIcon";
 import { useState, useEffect } from "react";
 import { useQueue } from "@/utils/Queue";
 import { BsFillPlayFill } from "react-icons/bs";
+import { BiUserCircle } from "react-icons/bi"
+import { ThemeSwitch } from "./theme-switch";
 export default function SongPlayer() {
     const [liked, setLiked] = useState(false);
-    const { currentSong, playNextSong, playPreviousSong, player, playing, pause, PlayCurrent, queue } = useQueue();
+    const { currentSong, playNextSong, playPreviousSong, player, playing, pause, PlayCurrent, queue, users, socket } = useQueue();
     const [timeline, setTimeline] = useState('');
+    const [playerState, setPlayerState] = useState('');
 
     var stateNames = {
-        '-1': 'unstarted',
-        0: 'ended',
-        1: 'playing',
-        2: 'paused',
-        3: 'buffering',
-        5: 'video cued'
+        '-1': 'Not Started',
+        0: 'Ended',
+        1: 'Playing',
+        2: 'Paused',
+        3: 'Buffering',
+        5: 'Song Queued'
     };
 
     const compareTimes = (time1: string, time2: string): number => {
@@ -52,6 +56,11 @@ export default function SongPlayer() {
 
         player?.on('stateChange', function (event: any) {
             let id;
+            //map player state with player name
+            const objectKeys = Object.keys(stateNames);
+            const objectValues = Object.values(stateNames);
+            const state = objectValues[objectKeys.indexOf(String(event.data))];
+            setPlayerState(state);
             if (event.data === 1) {
                 id = setInterval(() => {
                     getTime();
@@ -69,119 +78,89 @@ export default function SongPlayer() {
 
             {currentSong ? <Card
                 isBlurred
-                className=" bg-white/5 dark:bg-yellow-100/100 max-w-[610px]"
-                radius="xl"
+                className=" bg-white/5 dark:bg-yellow-100/100 "
+                radius="none"
                 shadow="2xl"
                 style={{
+                    position: "fixed",
+                    bottom: "0",
                     width: "100%",
-                    // height: "200px",
-                    overflow: "hidden"
+                    overflow: "hidden",
+                    right: "0",
+                    zIndex: 1000
                 }}
             >
+                <Progress
+                    aria-label="Music progress"
+                    color="default"
+                    size="sm"
+                    radius="none"
+                    value={player ? compareTimes(timeline, currentSong?.duration) : 0}
+                    style={{
+                        width: "100%"
+                    }}
+                />
                 <CardBody style={{
-                    padding: "20px 20px 5px 5px"
+                    padding: "25px 12px"
                 }}>
-                    <div className="grid grid-cols-6 md:grid-cols-12 gap-6 md:gap-4 items-center justify-center">
-                        <div className="relative col-span-6 md:col-span-4 sm:max-w-[200px]">
-                            <Image
-                                isZoomed
-                                isBlurred
-                                alt="Album cover"
-                                className="object-cover"
-                                height={200}
-                                shadow="lg"
-                                src={currentSong?.thumbnail}
-                                width="100%"
-
+                    <div className="flex justify-center items-center gap-3 w-full flex-wrap">
+                        <div className="image self-start" style={{
+                            flex: 1
+                        }}>
+                            <Image src={currentSong?.thumbnail} width={200} height={200} isBlurred isZoomed
+                                radius="md"
+                                className=" self-start"
                             />
                         </div>
+                        <div className="flex flex-col h-full justify-center" style={{ width: "30%", flex: 7 }}>
 
-                        <div className="flex flex-col col-span-6 md:col-span-8">
-                            <div className="flex justify-between items-start">
-                                <div className="flex flex-col gap-0">
-                                    <h3 className="font-semibold text-foreground/90">{currentSong?.title}</h3>
-                                    <p className="text-sm text-foreground/80">{queue.length} in Queue</p>
-                                    <h1 className="text-lg font-medium mt-2">{currentSong?.description.length > 20 ? currentSong?.description.slice(0, 30) + ".." : currentSong?.description}</h1>
-                                </div>
-                                <Button
-                                    isIconOnly
-                                    className="text-default-900/60 data-[hover]:bg-foreground/10 -translate-y-2 translate-x-2"
-                                    radius="full"
-                                    variant="light"
-                                    onPress={() => setLiked((v) => !v)}
+                            <h4 className="text-lg font-bold">Now Playing: {currentSong?.title}</h4>
+                            <h5 className="text-lg font-medium">By {currentSong?.author}</h5>
+                        </div>
+                        <div className="flex gap-2" style={{
+                            flex: 9
+                        }}>
+                            <PreviousIcon onClick={playPreviousSong} width={undefined} height={undefined} />
+                            {playing ? <PauseCircleIcon onClick={pause} width={undefined} height={undefined} /> : <PlayIcon onClick={PlayCurrent} size={25} className="bg-white text-black rounded-full p-1" width={undefined} height={undefined} />}
+                            <NextIcon onClick={playNextSong} width={undefined} height={undefined} />
+                        </div>
+                        <div className="flex pr-6">
+                            <Dropdown
+                              
+                            >
+                                <DropdownTrigger
                                 >
-                                    <HeartIcon
-                                        className={liked ? "[&>path]:stroke-transparent" : ""}
-                                        fill={liked ? "currentColor" : "none"} width={undefined} height={undefined} />
-                                </Button>
-                            </div>
+                                    <Button
 
-                            <div className="flex flex-col mt-3 gap-1">
-                                <Progress
-                                    aria-label="Music progress"
-                                    color="default"
-                                    size="sm"
-                                    value={player ? compareTimes(timeline, currentSong?.duration) : 0}
-                                />
-                                <div className="flex justify-between">
-                                    <p className="text-sm">{player ? timeline : 0}</p>
-                                    <p className="text-sm text-foreground/50">{currentSong?.duration}</p>
-                                </div>
-                            </div>
-
-                            <div className="flex w-full items-center justify-center">
-                                <Button
-                                    isIconOnly
-                                    className="data-[hover]:bg-foreground/10"
-                                    radius="full"
-                                    variant="light"
-                                >
-                                    <RepeatOneIcon className="text-foreground/80" width={undefined} height={undefined} />
-                                </Button>
-                                <Button
-                                    isIconOnly
-                                    className="data-[hover]:bg-foreground/10"
-                                    radius="full"
-                                    variant="light"
-                                    onPress={() => {
-                                        playPreviousSong();
-                                    }}
-                                >
-                                    <PreviousIcon width={undefined} height={undefined} />
-                                </Button>
-                                <Button
-                                    isIconOnly
-                                    className="w-auto h-auto data-[hover]:bg-foreground/10"
-                                    radius="full"
-                                    variant="light"
-                                    onPress={() => {
-                                        playing ? pause() : PlayCurrent();
-                                    }}
-                                >
-                                    {playing ? <PauseCircleIcon size={54} width={undefined} height={undefined} /> : <BsFillPlayFill size={40} />}
-                                </Button>
-                                <Button
-                                    isIconOnly
-                                    className="data-[hover]:bg-foreground/10"
-                                    radius="full"
-                                    variant="light"
-                                    onPress={() => {
-                                        playNextSong();
-                                    }}
-                                >
-                                    <NextIcon width={undefined} height={undefined}
-
+                                        isIconOnly
+                                        startIcon={
+                                            <BiUserCircle size={20} />
+                                        }
+                                        color="primary"
+                                        variant="light"
                                     />
-                                </Button>
-                                <Button
-                                    isIconOnly
-                                    className="data-[hover]:bg-foreground/10"
-                                    radius="full"
-                                    variant="light"
+                                </DropdownTrigger>
+                                <DropdownMenu
+                                    variant="shadow"
+                                    aria-label="Users"
+                                    color="primary"
+                                    style={{
+                                        background: "red",
+                                        color: "var( --c4)"
+                                    }}
                                 >
-                                    <ShuffleIcon className="text-foreground/80" width={undefined} height={undefined} />
-                                </Button>
-                            </div>
+                                    {users ? users.map((user: any, index: number) => {
+                                        return <DropdownItem key={index} style={{
+                                            background: "red",
+                                            color: "var( --c4)"
+                                        }}>
+                                           <h3 style={{ color: "black" }}>{user?.name}</h3>
+                                            </DropdownItem>
+
+                                    }) : <h1>No Users</h1>
+                                    }
+                                </DropdownMenu>
+                            </Dropdown>
                         </div>
                     </div>
                 </CardBody>
