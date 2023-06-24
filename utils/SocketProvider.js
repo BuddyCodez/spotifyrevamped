@@ -10,7 +10,7 @@ export const SocketProvider = ({ children }) => {
 
     useEffect(() => {
         // fetch("http://localhost:4200");
-        const newSocket = io('http://localhost:4200'); // Replace with your Socket.IO server URL
+        const newSocket = io(process.env.NEXT_PUBLIC_SOCKET_URL); // Replace with your Socket.IO server URL
         setSocket(newSocket);
         console.log("Socket Connected.");
         return () => {
