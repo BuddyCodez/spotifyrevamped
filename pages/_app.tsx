@@ -10,23 +10,27 @@ import { SocketProvider } from '../utils/SocketProvider';
 
 import { io } from "socket.io-client";
 import { useEffect } from 'react';
+import { store, initializeSocketListeners } from "@/store";
+import { Provider } from "react-redux";
 export default function App({
 	Component,
 	pageProps: { session, ...pageProps },
 }: AppProps) {
 	let socket: any;
-
+	initializeSocketListeners(store.dispatch);
 
 	return (
 		<SocketProvider>
 			<SessionProvider session={session}>
-				<QueueProvider>
-					<NextUIProvider>
-						<NextThemesProvider>
-							<Component {...pageProps} />
-						</NextThemesProvider>
-					</NextUIProvider>
-				</QueueProvider>
+				<Provider store={store}>
+					<QueueProvider>
+						<NextUIProvider>
+							<NextThemesProvider>
+								<Component {...pageProps} />
+							</NextThemesProvider>
+						</NextUIProvider>
+					</QueueProvider>
+				</Provider>
 			</SessionProvider>
 		</SocketProvider>
 	);

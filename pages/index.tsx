@@ -45,7 +45,7 @@ export default function IndexPage() {
 						<div className="scrollable flex flex-col gap-3 p-2">
 							{queue && queue.map((song: any, index: any) => (
 								<div key={index} className="flex rounded-lg items-center gap-2 card cursor-pointer " style={{ width: "100%" }}>
-									<Image src={song.thumbnail} width={180} isZoomed  radius="md"/>
+									<Image src={song.thumbnail} width={100} height={100} shadow="md"   isZoomed  radius="md"/>
 									<div className="flex flex-col">
 										<small>{song.title}</small>
 										<small>{song?.by?.name ? "Added by" : "Author"} {song?.by?.name || song?.author}</small>

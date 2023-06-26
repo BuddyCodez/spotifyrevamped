@@ -79,5 +79,15 @@ io.on('connection', function (client) {
         console.log("Seeking to:", data + " seconds");
         io.emit("seekto", data);
     })
-
+    client.on("pauseSync", (d) => {
+        io.emit("pause", d);
+        Queue.playing = false;
+    })
+    client.on("playSync", (d) => {
+        io.emit("play", d);
+        Queue.playing = true;
+    });
+    client.on("seekToSync", (d) => {
+        io.emit("seekto", d);
+    })
 });

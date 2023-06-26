@@ -78,14 +78,25 @@ export const QueueProvider = ({ children }) => {
             })
             socket.on("seekto", (data) => {
                 player?.seekTo(data);
-            });
 
+            });
+            socket.on("pause", (d) => {
+                if (currentSong && player) {
+                    console.log("Paused playback");
+                    player.pauseVideo();
+                    setPlaying(false);
+                }
+            })
         }
     })
     useEffect(() => {
         if (socket) {
             socket.on('play', (data) => {
                 console.log("Played..")
+                if(currentSong && player){
+                    player.playVideo();
+                    setPlaying(true);
+                }
             })
             socket.on('setPlaying', (data) => {
                 // console.log("Set Playing", data);
@@ -122,7 +133,6 @@ export const QueueProvider = ({ children }) => {
         if (player && currentSong) {
             console.log("Player state Binded");
             player.on('stateChange', (e) => {
-                console.log("State Changed", e.data);
                 if (e.data == 0) {
                     playNextSong();
                 }
@@ -130,10 +140,11 @@ export const QueueProvider = ({ children }) => {
                 const objectValues = Object.values(stateNames);
                 const state = objectValues[objectKeys.indexOf(String(e.data))];
                 setPlayerState(state);
+                console.log("State Changed", state);
             })
         }
     }, [player, currentSong])
-    
+
 
     const removeFromQueue = () => {
 
@@ -148,14 +159,16 @@ export const QueueProvider = ({ children }) => {
     }
 
     const PlayCurrent = () => {
-
+        player && socket?.emit("playSync", currentSong);
     }
     const pause = () => {
-
+        player && socket?.emit("pauseSync", currentSong);
     }
-
+    const seekTo = (time) => {
+        player && socket?.emit("seekToSync", time);
+    }
     return (
-        <QueueContext.Provider value={{ queue, currentSong, addToQueue, removeFromQueue, playPreviousSong, playNextSong, playing, pause, PlayCurrent, player, users, socket }}>
+        <QueueContext.Provider value={{ queue, currentSong, addToQueue, removeFromQueue, playPreviousSong, playNextSong, playing, pause, PlayCurrent, player, users, socket, seekTo }}>
             <div id='player-1' style={{
                 // width: 0,
                 // height: 0,
@@ -166,3 +179,4 @@ export const QueueProvider = ({ children }) => {
     );
 };
 export default QueueProvider;
+
