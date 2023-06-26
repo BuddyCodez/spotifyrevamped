@@ -30,7 +30,7 @@ const SongList = () => {
     setSearchQuery(e.target.value);
   };
   return (
-    <div style={{ width: "100%" }}>
+    <div  style={{ width: "300px", height: "500px" }}>
         <Input
         label="Search"
         
@@ -75,33 +75,31 @@ const SongList = () => {
 
       {
         loading && <div className="flex justify-center items-center" style={{
-        height: "287px",
+        height: "100%",
         width: "100%"
       }}>
           <CircularProgress />
         </div>
       }
       { searchResults && !loading && <div className="overflow-y-scroll scrollbar" style={{
-        height: "350px",
+        height: "400px",
         width: "100%"
       }}>
-        <div className="p-3 flex flex-col items-center justify-center">
+        <div className="p-3 flex flex-col items-center justify-start" style={{
+          width: "100%"
+        }}>
 {searchResults.map((song, index) => (
-          <div className="flex mt-2 mb-2 cursor-pointer" key={index} style={{ width: "90%" }}
+          <div className="flex mt-2 mb-2 cursor-pointer" key={index}
           onClick={() => {
                addToQueue(song);
-            }}
+    }}
+    style={{width: "100%"}}
           >
-            <div className="card flex items-center gap-4 rounded-lg" style={{width:"100%"}}>
-              <Image
-                src={song.thumbnail}
-                width={100}
-                height={100}
-                shadow="lg"
-                isZoomed
-                isBlurred
-                alt="Song Thumbnail"
-              />
+            <div className="card flex items-center gap-4 rounded-lg"  style={{
+      width: "100%",
+              background: "#0c131b",
+              
+        }}>
               <div className="flex flex-col gap-2 ">
                 <h3>{song?.title}</h3>
                 <p>{song?.author}</p>

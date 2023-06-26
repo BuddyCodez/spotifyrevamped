@@ -43,6 +43,12 @@ export const QueueProvider = ({ children }) => {
             setHasJoined(true);
         }
     }, [socket, session, hasJoined]);
+    async function getTime() {
+        if (player) {
+            let time = await player.getCurrentTime();
+            return time;
+        }
+    }
     useEffect(() => {
         if (socket) {
 
@@ -54,8 +60,25 @@ export const QueueProvider = ({ children }) => {
             })
 
             socket.on("NewPlayed", (data) => {
+                // console.log("New Played", data);
+                if (data === null) {
+                    setCurrentSong(null);
+                    player?.stopVideo();
+                    setPlaying(false);
+                    return;
+                }
                 setCurrentSong(data);
             })
+            socket.on("getCurrentTime", async (data) => {
+                if (currentSong) {
+                    var time = await getTime();
+                    console.log("Time", time);
+                    socket.emit("seek", time);
+                }
+            })
+            socket.on("seekto", (data) => {
+                player?.seekTo(data);
+            });
 
         }
     })
@@ -73,19 +96,19 @@ export const QueueProvider = ({ children }) => {
                 playing: playing
             });
         }
-       
+
     }, [queue]);
     useEffect(() => {
         if (player && currentSong) {
             player.loadVideoById({ videoId: currentSong.videoId });
             console.log("Cued Video", currentSong.videoId);
-            
+
         }
         if (!player && currentSong && !playing) {
             const youtubePlayer = YouTubePlayer('player-1', {
                 videoId: currentSong.videoId,
-                width: 640,
-                height: 360,
+                width: 0,
+                height: 0,
                 playerVars: {
                     autoplay: 1,
                 },
@@ -94,50 +117,23 @@ export const QueueProvider = ({ children }) => {
             setPlaying(true);
         }
     }, [player, currentSong]);
-    // useEffect(() => {
-    //     if (!player) {
-           
-    //     }
-    // }, [player]);
-    // useEffect(() => {
-    //     if (currentSong) {
-    //         if (!player) {
-    //             setPlayer(YouTubePlayer('player-1', {
-    //                 videoId: currentSong.videoId
-    //             }))
-    //         } else {
-    //             player?.loadVideoById({
-    //                 videoId: currentSong.videoId
-    //             })
-    //        }
-    //     }
-    // }, [currentSong]);
 
     useEffect(() => {
-        if (playeState == 'Not Started') {
-            // console.log("state", playeState)
-            // player?.playVideo();
-            // console.log("Playing...")
+        if (player && currentSong) {
+            console.log("Player state Binded");
+            player.on('stateChange', (e) => {
+                console.log("State Changed", e.data);
+                if (e.data == 0) {
+                    playNextSong();
+                }
+                const objectKeys = Object.keys(stateNames);
+                const objectValues = Object.values(stateNames);
+                const state = objectValues[objectKeys.indexOf(String(e.data))];
+                setPlayerState(state);
+            })
         }
-    }, [playeState])
-    useEffect(() => {
-        // player?.on('ready', function (event) {
-        //     player?.pauseVideo();
-        //     socket.emit("Buffered", true, (res) => {
-        //         console.log(res);
-        //         if (player?.getPlayerState() !== 1) player?.playVideo();
-        //     });
-        // });
-
-        player?.on('stateChange', function (event) {
-            //map player state with player name
-            const objectKeys = Object.keys(stateNames);
-            const objectValues = Object.values(stateNames);
-            const state = objectValues[objectKeys.indexOf(String(event.data))];
-            setPlayerState(state);
-
-        });
-    }, [player]);
+    }, [player, currentSong])
+    
 
     const removeFromQueue = () => {
 
@@ -161,8 +157,8 @@ export const QueueProvider = ({ children }) => {
     return (
         <QueueContext.Provider value={{ queue, currentSong, addToQueue, removeFromQueue, playPreviousSong, playNextSong, playing, pause, PlayCurrent, player, users, socket }}>
             <div id='player-1' style={{
-                    // width: 0,
-                    // height: 0,
+                // width: 0,
+                // height: 0,
                 // display: 'none'
             }}></div>
             {children}

@@ -78,7 +78,7 @@ export default function SongPlayer() {
 
             {currentSong ? <Card
                 isBlurred
-                className=" bg-white/5 dark:bg-yellow-100/100 "
+                // className=" bg-white/5 dark:bg-yellow-100/100 "
                 radius="none"
                 shadow="2xl"
                 style={{
@@ -87,39 +87,45 @@ export default function SongPlayer() {
                     width: "100%",
                     overflow: "hidden",
                     right: "0",
-                    zIndex: 1000
+                    zIndex: 1000,
+                    background: "var(--c1)"
                 }}
             >
                 <Progress
                     aria-label="Music progress"
-                    color="default"
                     size="sm"
-                    radius="none"
+                    radius="sm"
                     value={player ? compareTimes(timeline, currentSong?.duration) : 0}
                     style={{
-                        width: "100%"
+                        width: "100%",
+                    }}
+                    classNames={{
+                        track: "drop-shadow-md border border-default",
+                        indicator: "bg-gradient-to-r from-blue-500 to-cyan-700",
+                        label: "tracking-wider font-medium text-default-600",
+                        value: "text-foreground/60",
                     }}
                 />
                 <CardBody style={{
                     padding: "25px 12px"
                 }}>
-                    <div className="flex justify-center items-center gap-3 w-full flex-wrap">
-                        <div className="image self-start" style={{
-                            flex: 1
+                    <div className="flex justify-between items-center gap-3 w-full flex-wrap">
+                        <div className="flex image gap-3 items-center" style={{
+                            // flex: 1
                         }}>
-                            <Image src={currentSong?.thumbnail} width={200} height={200} isBlurred isZoomed
+                            <Image src={currentSong?.thumbnail} width={100} height={100} isBlurred isZoomed
                                 radius="md"
                                 className=" self-start"
                             />
-                        </div>
-                        <div className="flex flex-col h-full justify-center" style={{ width: "30%", flex: 7 }}>
+                            <div className="flex flex-col h-full justify-center" >
 
-                            <h4 className="text-lg font-bold">Now Playing: {currentSong?.title}</h4>
-                            <h5 className="text-lg font-medium">By {currentSong?.author}</h5>
+                                <small className="">Now Playing: {currentSong?.title}</small>
+                                <h5 className="">By {currentSong?.author}</h5>
+                            </div>
+                           
                         </div>
-                        <div className="flex gap-2" style={{
-                            flex: 9
-                        }}>
+                   
+                        <div className="flex gap-2  justify-start" >
                             <PreviousIcon onClick={playPreviousSong} width={undefined} height={undefined} />
                             {playing ? <PauseCircleIcon onClick={pause} width={undefined} height={undefined} /> : <PlayIcon onClick={PlayCurrent} size={25} className="bg-white text-black rounded-full p-1" width={undefined} height={undefined} />}
                             <NextIcon onClick={playNextSong} width={undefined} height={undefined} />

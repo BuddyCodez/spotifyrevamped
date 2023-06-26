@@ -20,6 +20,13 @@ const users = new Map();
 const Queue = new QueueManger();
 const connectedUsers = [];
 io.on('connection', function (client) {
+
+    if (Queue.isPlaying()) {
+        console.log("Queue already Playing...");
+        io.to(client.id).emit('setPlaying', Queue.getCurrent());
+        io.to(client.id).emit('queue', Queue.getQueue());
+        // io.to(connectedUsers[0].id).emit('getCurrentTime');
+    }
     console.log('Client connected...');
     io.on('disconnect', function (data) {
         console.log('Client disconnected...');
@@ -47,7 +54,7 @@ io.on('connection', function (client) {
         console.log("Queue Added..")
         const isplaying = Queue.isPlaying();
         console.log("isplaying:", isplaying);
-        const playing = data?.playing
+        const playing = data?.playing;
         if (!isplaying || !playing) {
             console.log("Playing..");
             Queue.play();
@@ -67,6 +74,10 @@ io.on('connection', function (client) {
     })
     client.on("getUsers", (data, callback) => {
         callback(users);
+    })
+    client.on("seek", (data) => {
+        console.log("Seeking to:", data + " seconds");
+        io.emit("seekto", data);
     })
 
 });
