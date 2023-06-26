@@ -206,7 +206,8 @@ export default function SongPlayer() {
                 </CardBody>
             </Card> : <h1>
                 Play a Song...
-            </h1>}
+            </h1>
+            }
         </>
     );
 }
