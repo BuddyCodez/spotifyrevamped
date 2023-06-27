@@ -4,7 +4,7 @@ var server = require('http').createServer(app);
 const QueueManger = require('./QueueManger');
 var io = require('socket.io')(server, {
     cors: {
-        origin: "http://localhost:3000",
+        origin: "*",
         methods: ["GET", "POST"]
     }
 });

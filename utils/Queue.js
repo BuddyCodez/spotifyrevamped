@@ -170,9 +170,7 @@ export const QueueProvider = ({ children }) => {
     return (
         <QueueContext.Provider value={{ queue, currentSong, addToQueue, removeFromQueue, playPreviousSong, playNextSong, playing, pause, PlayCurrent, player, users, socket, seekTo }}>
             <div id='player-1' style={{
-                // width: 0,
-                // height: 0,
-                // display: 'none'
+              
             }}></div>
             {children}
         </QueueContext.Provider>
