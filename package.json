@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "concurrently \"nodemon node server/index.js\" \"next dev\"",
     "build": "next build",
-    "start": "next start",
+    "start": "node server/index.js",
     "lint": "next lint"
   },
   "dependencies": {
