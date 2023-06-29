@@ -5,10 +5,13 @@ const QueueContext = createContext();
 import { useSession } from 'next-auth/react';
 import { SocketContext } from './SocketProvider';
 import { data } from 'autoprefixer';
+import { useSeekbar } from './useSeekbar';
 export const useQueue = () => useContext(QueueContext);
 // const useSocket = useContext(SocketContext);
 
+
 export const QueueProvider = ({ children }) => {
+    const { SetProgress } = useSeekbar();
     const { data: session } = useSession();
     const [player, setPlayer] = useState();
     const [queue, setQueue] = useState([]);
@@ -17,7 +20,13 @@ export const QueueProvider = ({ children }) => {
     const [users, setUsers] = useState('');
     const [playeState, setPlayerState] = useState('');
     const [hasJoined, setHasJoined] = useState(false);
+    const [currentTime, setCurrentTime] = useState(null);
     const socket = useContext(SocketContext);
+    
+    useEffect(() => {
+        console.log("Player", player);
+    }, [player])
+
     const addToQueue = (song) => {
         const toadd = {
             ...song, by: session ? session.user : {
@@ -93,7 +102,7 @@ export const QueueProvider = ({ children }) => {
         if (socket) {
             socket.on('play', (data) => {
                 console.log("Played..")
-                if(currentSong && player){
+                if (currentSong && player) {
                     player.playVideo();
                     setPlaying(true);
                 }
@@ -133,7 +142,17 @@ export const QueueProvider = ({ children }) => {
         if (player && currentSong) {
             console.log("Player state Binded");
             player.on('stateChange', (e) => {
+                let id;
+                if (e.data == 1) {
+                    id = setInterval(async () => {
+                        const time = await player.getCurrentTime();
+                        const duration = await player.getDuration();
+                        setCurrentTime(time);
+                        SetProgress((time / duration) * 100);
+                    })
+                }
                 if (e.data == 0) {
+                    clearInterval(id);
                     playNextSong();
                 }
                 const objectKeys = Object.keys(stateNames);
@@ -168,9 +187,9 @@ export const QueueProvider = ({ children }) => {
         player && socket?.emit("seekToSync", time);
     }
     return (
-        <QueueContext.Provider value={{ queue, currentSong, addToQueue, removeFromQueue, playPreviousSong, playNextSong, playing, pause, PlayCurrent, player, users, socket, seekTo }}>
+        <QueueContext.Provider value={{ queue, currentSong, addToQueue, removeFromQueue, playPreviousSong, playNextSong, playing, pause, PlayCurrent, player, users, socket, seekTo, currentTime, playeState }}>
             <div id='player-1' style={{
-              
+
             }}></div>
             {children}
         </QueueContext.Provider>

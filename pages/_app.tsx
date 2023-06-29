@@ -6,6 +6,7 @@ import { fontSans, fontMono } from "@/config/fonts";
 import type { AppProps } from "next/app";
 import { SessionProvider, useSession } from "next-auth/react"
 import { QueueProvider } from '../utils/Queue';
+import { SeekbarProvider } from '../utils/useSeekbar';
 import { SocketProvider } from '../utils/SocketProvider';
 
 import { io } from "socket.io-client";
@@ -15,12 +16,12 @@ export default function App({
 	Component,
 	pageProps: { session, ...pageProps },
 }: AppProps) {
-	
+
 
 	return (
 		<SocketProvider>
 			<SessionProvider session={session}>
-				
+				<SeekbarProvider>
 					<QueueProvider>
 						<NextUIProvider>
 							<NextThemesProvider>
@@ -28,7 +29,7 @@ export default function App({
 							</NextThemesProvider>
 						</NextUIProvider>
 					</QueueProvider>
-				
+				</SeekbarProvider>
 			</SessionProvider>
 		</SocketProvider>
 	);
