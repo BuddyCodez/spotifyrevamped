@@ -28,6 +28,8 @@ const handler = async (req, res) => {
                     description: video.description,
                     author: video.author.name,
                     duration: video.timestamp,
+                    views: video.views,
+                    url: video.url,
                 };
             })
         );

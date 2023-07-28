@@ -1,8 +1,8 @@
 export type SiteConfig = typeof siteConfig;
 
 export const siteConfig = {
-	name: "Spotify Revamped By Udit",
-	description: "Make beautiful websites regardless of your design experience.",
+	name: "SoundCircle",
+	description: "SoundCircle is a revolutionary music-sharing platform that brings people together through the power of music. Imagine a virtual gathering where users from different corners of the world can connect, listen, and enjoy their favorite tunes simultaneously. SoundCircle allows multiple users to create, collaborate, and share playlists, creating a harmonious experience that transcends boundaries.",
 	navItems: [
 		{
 			label: "Home",

@@ -1,5 +1,6 @@
 import "@/styles/globals.css";
 import "@/styles/index.css";
+import "@/styles/slider.css";
 import { NextUIProvider } from "@nextui-org/react";
 import { ThemeProvider as NextThemesProvider } from "next-themes";
 import { fontSans, fontMono } from "@/config/fonts";
@@ -12,6 +13,9 @@ import { SocketProvider } from '../utils/SocketProvider';
 import { io } from "socket.io-client";
 import { useEffect } from 'react';
 import { Provider } from "react-redux";
+import { PlayerProvider } from "@/store/player";
+import { UserProvider } from "@/store/users";
+import { RoomProvider } from "@/store/room";
 export default function App({
 	Component,
 	pageProps: { session, ...pageProps },
@@ -20,17 +24,22 @@ export default function App({
 
 	return (
 		<SocketProvider>
-			<SessionProvider session={session}>
-				<SeekbarProvider>
-					<QueueProvider>
-						<NextUIProvider>
-							<NextThemesProvider>
-								<Component {...pageProps} />
-							</NextThemesProvider>
-						</NextUIProvider>
-					</QueueProvider>
-				</SeekbarProvider>
-			</SessionProvider>
+			<PlayerProvider>
+				<SessionProvider session={session}>
+					<RoomProvider>
+
+						<UserProvider>
+							<QueueProvider>
+								<NextUIProvider>
+									<NextThemesProvider>
+										<Component {...pageProps} />
+									</NextThemesProvider>
+								</NextUIProvider>
+							</QueueProvider>
+						</UserProvider>
+					</RoomProvider>
+				</SessionProvider>
+			</PlayerProvider>
 		</SocketProvider>
 	);
 }

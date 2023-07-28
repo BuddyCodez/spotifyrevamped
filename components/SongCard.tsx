@@ -6,47 +6,95 @@ import { NextIcon } from "./NextIcon";
 import { PreviousIcon } from "./PreviousIcon";
 import { RepeatOneIcon } from "./RepeatOneIcon";
 import { ShuffleIcon } from "./ShuffleIcon";
-import { useState, useEffect, ChangeEvent } from "react";
+import { useState, useEffect, ChangeEvent, useContext } from "react";
 import { useQueue } from "@/utils/Queue";
 import { BsFillPlayFill } from "react-icons/bs";
-import { BiUserCircle } from "react-icons/bi"
+import { BiPause, BiPlay, BiUserCircle, BiVolume, BiVolumeFull } from "react-icons/bi"
 import { ThemeSwitch } from "./theme-switch";
 import { GrForwardTen } from "react-icons/gr";
 import { FaFontAwesome } from "react-icons/fa";
 import { useSeekbar } from "@/utils/useSeekbar";
+import { PlayerContextType, QueueStore, playerStore, usePlayer } from "@/store/player";
+import modalStore from "@/store/modal";
+import { SocketContext } from "@/utils/SocketProvider";
+import { UserContextType, useUsers } from "@/store/users";
+import { RoomContextType, useRoom } from "@/store/room";
 export default function SongPlayer() {
-    const [liked, setLiked] = useState(false);
-    const { currentSong, playNextSong, playPreviousSong, player, playing, pause, PlayCurrent, queue, users, socket, seekTo, currentTime, playerState } = useQueue();
-    const { progress, dragging, SetProgress, SetDragging } = useSeekbar();
+    const [VolumeSlider, SetVolumeSlider] = useState(false);
+    // const { currentSong, playNextSong, playPreviousSong, player, playing, pause, PlayCurrent, queue, users, socket, seekTo, currentTime, playerState } = useQueue();
+    const Player: any = playerStore();
+    const Queue: any = QueueStore();
+    const Modal: any = modalStore();
+    const [volume, setVolume] = useState(Player?.playing ? Player?.value?.getVolume() : 100 || 100);
 
-    const compareTimes = (time1: string, time2: string): number => {
-        const [hours1, minutes1] = time1.split(':').map(Number);
-        const [hours2, minutes2] = time2.split(':').map(Number);
-
-        const totalMinutes1 = hours1 * 60 + minutes1;
-        const totalMinutes2 = hours2 * 60 + minutes2;
-
-        const timeDifference = Math.abs(totalMinutes1 - totalMinutes2);
-        const maxTimeDifference = 3 * 60; // Maximum difference is 3 hours
-
-        const similarityPercentage = Math.max(0, Math.min(100, 100 - (timeDifference / maxTimeDifference) * 100));
-        // console.log("similarityPercentage", similarityPercentage);
-        return similarityPercentage;
-    };
-    const getTime = (time: number) => {
-
-        const currentTime = Math.floor(time);
-        const minutes = Math.floor(currentTime / 60);
-        const seconds = currentTime % 60;
-        const formattedTime = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-        // console.log("formattedTime", formattedTime);
-        return formattedTime;
+    const [progress, setProgress] = useState(0);
+    const { dragging, SetDragging, value, setValue, next } = usePlayer() as PlayerContextType;
+    const socket = useContext(SocketContext);
+    const { users,
+        addKnownUser,
+        addAknownUser } = useUsers() as UserContextType;
+    const { room, setUsers, users: RoomUsers} = useRoom() as RoomContextType;
+    useEffect(() => {
+        if (value) {
+            setProgress(value);
+        }
+    }, [value]);
+    const AddUsers = (data: any) => {
+        console.log(data);
+        if (Array.isArray(data)) {
+            data.forEach((user: any) => {
+                if (user.type == "known") {
+                    addKnownUser(user);
+                } else {
+                    addAknownUser();
+                }
+            });
+        }
     }
+    const playPreviousSong = () => {
 
+    }
+    const changePlayState = (state: string) => {
+        if (state == "play" && !Player.playing) {
+            Player.playing = true;
+            Player.play();
+        } else {
+            Player.playing = false;
+            Player.value.pauseVideo();
+        }
+    }
+    const NextSong = () => {
+        if (room) {
+            socket.emit("queueAction", {
+                code: room,
+                action: "nextSong"
+            })
+        } else {
+            next();
+        }
+    }
+    const getTime = () => {
+        const seconds = Math.floor(Player.value.getCurrentTime());
+        const hours = Math.floor(seconds / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        const remainingSeconds = seconds % 60;
+
+        const formattedHours = String(hours).padStart(2, '0');
+        const formattedMinutes = String(minutes).padStart(2, '0');
+        const formattedSeconds = String(remainingSeconds).padStart(2, '0');
+        let time = `${formattedHours}:${formattedMinutes}:${formattedSeconds}`;
+        time = time.includes("NaN") ? "00:00" : time;
+        return time;
+    }
+    const getTimeAndDuration = () => {
+        const currentTime = Player.value.getCurrentTime();
+        const duration = Player.value.getDuration();
+        return { currentTime, duration };
+    };
     return (
         <>
 
-            {currentSong ? <Card
+            {Queue?.currentSong ? <Card
                 isBlurred
                 // className=" bg-white/5 dark:bg-yellow-100/100 "
                 radius="none"
@@ -61,120 +109,131 @@ export default function SongPlayer() {
                     background: "var(--c1)"
                 }}
             >
-                <Progress
-                    aria-label="Music progress"
-                    size="sm"
-                    radius="sm"
-                    value={progress ? progress : 0}
-                    style={{
-                        width: "100%",
-                    }}
-                    onMouseDown={(e) => {
-                        SetDragging(true);
-                    }}
-                    onMouseUp={(e) => {
-                        SetDragging(false);
-                    }}
-                    onClick={(e) => {
-                        if(!dragging) return;
-                        const time = (e.clientX * 100) / window.innerWidth;
-                        SetProgress(time);
-                    }}
-                    classNames={{
-                        track: "drop-shadow-md border border-default",
-                        indicator: "bg-gradient-to-r from-blue-500 to-cyan-700",
-                        label: "tracking-wider font-medium text-default-600",
-                        value: "text-foreground/60",
-                    }}
-                />
-
+                <div className="sseekbar">
+                    <input type="range" value={progress || 0}
+                        max={100}
+                        style={{
+                            width: "100%"
+                        }}
+                        onMouseDown={() => SetDragging(true)}
+                        onMouseUp={() => {
+                            setProgress(value);
+                            const { duration } = getTimeAndDuration();
+                            const seekTime = (value / 100) * duration; // milliseconds
+                            // time in percent
+                            const time = (seekTime / duration) * 100;
+                            Player.value.seekTo(seekTime);
+                            room && socket?.emit("seekTo", {
+                                code: room,
+                                percent: time
+                            })
+                            SetDragging(false);
+                        }}
+                        onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                            SetDragging(true);
+                            setValue(parseInt(e.target.value));
+                        }}
+                        onDrag={() => SetDragging(true)}
+                    />
+                </div>
                 <div className="flex justify-between w-full px-2 pt-2">
                     <div className="flex gap-2">
-                        <small>{getTime(currentTime) ? getTime(currentTime) : playerState || "Loading..."}</small>
+                        <small>{getTime()}</small>
                     </div>
                     <div className="flex gap-2">
-                        <small>{player ? currentSong?.duration : playerState || "Loading..."}</small>
+                        <small>{Queue.currentSong.duration}</small>
                     </div>
                 </div>
                 <CardBody style={{
                     padding: "25px 12px"
                 }}>
-                    <div className="flex justify-between items-center gap-3 w-full flex-wrap">
+                    <div className="flex justify-between items-center w-full">
                         <div className="flex image gap-3 items-center" style={{
-                            // flex: 1
+                            width: "33.34%"
                         }}>
-                            <Image src={currentSong?.thumbnail} width={100} height={100} isBlurred isZoomed
+                            <Image src={Queue.currentSong?.thumbnail} width={200} height={200} isBlurred isZoomed
                                 radius="md"
                                 className=" self-start"
+                                style={{
+                                    width: "120px"
+                                }}
                             />
                             <div className="flex flex-col h-full justify-center" >
 
-                                <small className="">Now Playing: {currentSong?.title}</small>
-                                <h5 className="">By {currentSong?.author}</h5>
+                                <span className="fade-text ">{Queue.currentSong?.title}</span>
+                                <h5 className="">By {Queue.currentSong?.author}</h5>
                             </div>
 
                         </div>
 
-                        <div className="flex gap-2  justify-start items-center" >
-                            <svg xmlns="http://www.w3.org/2000/svg" height="1em" viewBox="0 0 512 512" color="white"
-                                onClick={async () => {
-                                    const newValue = await player?.getCurrentTime() + 10;
-                                    seekTo(newValue);
-                                }}
-                            ><path fill="currentColor" d="M48.5 224H40c-13.3 0-24-10.7-24-24V72c0-9.7 5.8-18.5 14.8-22.2s19.3-1.7 26.2 5.2L98.6 96.6c87.6-86.5 228.7-86.2 315.8 1c87.5 87.5 87.5 229.3 0 316.8s-229.3 87.5-316.8 0c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0c62.5 62.5 163.8 62.5 226.3 0s62.5-163.8 0-226.3c-62.2-62.2-162.7-62.5-225.3-1L185 183c6.9 6.9 8.9 17.2 5.2 26.2s-12.5 14.8-22.2 14.8H48.5z" /></svg>
-                            <PreviousIcon onClick={playPreviousSong} width={undefined} height={undefined} />
-                            {playing ? <PauseCircleIcon onClick={pause} width={undefined} height={undefined} /> : <PlayIcon onClick={PlayCurrent} size={25} className="bg-white text-black rounded-full p-1" width={undefined} height={undefined} />}
-                            <NextIcon onClick={playNextSong} width={undefined} height={undefined} />
+                        <div className="flex gap-3  justify-center items-center transition-all"
+                            style={{
+                                width: "33.34%"
+                            }}>
+                            <PreviousIcon onClick={playPreviousSong} width={undefined} height={undefined} style={{
+                                transform: "scale(1.4)"
+                            }} />
+                            {Player.playing ? <BiPause
+                                onClick={() => changePlayState("pause")} size={25} className="pause bg-white text-black rounded-full p-1" style={{
+                                    transform: "scale(1.4)"
+                                }} /> : <BiPlay
+                                onClick={() => changePlayState("play")} size={25} className="play bg-white text-black rounded-full p-1" style={{
+                                    transform: "scale(1.4)"
+                                }} />}
+                            <NextIcon onClick={NextSong} width={undefined} height={undefined} style={{
+                                transform: "scale(1.4)"
+                            }} />
 
-                            <svg xmlns="http://www.w3.org/2000/svg" height="1em" viewBox="0 0 512 512" color="white"
-                                onClick={async () => {
-                                    const newValue = await player?.getCurrentTime() + 10;
-                                    seekTo(newValue);
-                                }}
-                            ><path fill="currentColor" d="M386.3 160H336c-17.7 0-32 14.3-32 32s14.3 32 32 32H464c17.7 0 32-14.3 32-32V64c0-17.7-14.3-32-32-32s-32 14.3-32 32v51.2L414.4 97.6c-87.5-87.5-229.3-87.5-316.8 0s-87.5 229.3 0 316.8s229.3 87.5 316.8 0c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0c-62.5 62.5-163.8 62.5-226.3 0s-62.5-163.8 0-226.3s163.8-62.5 226.3 0L386.3 160z" /></svg>
 
                         </div>
-                        <div className="flex pr-6">
-                            <Dropdown
-
-                            >
-                                <DropdownTrigger
-                                >
-                                    <Button
-
-                                        isIconOnly
-                                        startIcon={
-                                            <BiUserCircle size={20} />
-                                        }
-                                        color="primary"
-                                        variant="light"
-                                    />
-                                </DropdownTrigger>
-                                <DropdownMenu
-                                    variant="shadow"
-                                    aria-label="Users"
-                                    color="primary"
-                                    style={{
-                                        background: "red",
-                                        color: "var( --c4)"
+                        <div className="flex justify-center" style={{
+                            width: "33.34%"
+                        }}>
+                            <div className="flex gap-2">
+                                {/* for volume */}
+                                {
+                                    VolumeSlider && <div className="slider flex items-center">
+                                        <input type="range" value={volume}
+                                            onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                                                setVolume(parseInt(e.target.value));
+                                                Player.value.setVolume(parseInt(e.target.value));
+                                            }}
+                                        />
+                                    </div>
+                                }
+                                <Button isIconOnly radius="full"
+                                    variant="flat"
+                                    className="volume"
+                                    onPress={() => {
+                                        SetVolumeSlider(!VolumeSlider);
                                     }}
-                                >
-                                    {users ? users.map((user: any, index: number) => {
-                                        return <DropdownItem key={index} style={{
-                                            background: "red",
-                                            color: "var( --c4)"
-                                        }}>
-                                            <h3 style={{ color: "black" }}>{user?.name}</h3>
-                                        </DropdownItem>
-
-                                    }) : <h1>No Users</h1>
+                                    endIcon={
+                                        <BiVolumeFull />
                                     }
-                                </DropdownMenu>
-                            </Dropdown>
+                                >
+                                </Button>
+                                <Button isIconOnly radius="full"
+                                    variant="flat"
+                                    onPress={() => {
+                                       room && socket.emit("RoomMembers", {
+                                           roomCode: room 
+                                        },  (data: any) => setUsers(data));
+                                        let elemnt = document.querySelector(".users");
+                                        if (elemnt) {
+                                            elemnt.classList.toggle("hid");
+                                        }
+                                    }}
+                                    endIcon={
+                                        <BiUserCircle />
+                                    }
+                                >
+                                </Button>
+                            </div>
                         </div>
                     </div>
                 </CardBody>
-            </Card> : <h1>
+            </Card> : !Modal.value &&
+            <h1>
                 Play a Song...
             </h1>
             }

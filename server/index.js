@@ -1,7 +1,8 @@
 var express = require('express');
 var app = express();
 var server = require('http').createServer(app);
-const QueueManger = require('./QueueManger');
+const { user } = require('@nextui-org/react');
+const RoomQueue = require('./QueueManger');
 var io = require('socket.io')(server, {
     cors: {
         origin: "*",
@@ -16,78 +17,165 @@ app.get('/', (req, res) => {
 server.listen(4200, () => {
     console.log('Server is running on port 4200\n url: http://localhost:4200');
 })
-const users = new Map();
-const Queue = new QueueManger();
-const connectedUsers = [];
-io.on('connection', function (client) {
-
-    if (Queue.isPlaying()) {
-        console.log("Queue already Playing...");
-        io.to(client.id).emit('setPlaying', Queue.getCurrent());
-        io.to(client.id).emit('queue', Queue.getQueue());
-        // io.to(connectedUsers[0].id).emit('getCurrentTime');
+const parseDuration = (duration) => {
+    const parts = duration.split(":");
+    return parseInt(parts[0]) * 60 + parseInt(parts[1]);
+};
+const RoomCodes = [];
+const RQueue = new RoomQueue();
+const GeneareRoomCode = () => {
+    // Genrate a 4 Digit Room Code.
+    const min = 1000;
+    const max = 9999;
+    const randomCode = Math.floor(Math.random() * (max - min + 1)) + min;
+    if (RoomCodes.includes(randomCode)) {
+        return GeneareRoomCode();
     }
+    return randomCode;
+}
+io.on('connection', function (client) {
     console.log('Client connected...');
-    io.on('disconnect', function (data) {
-        console.log('Client disconnected...');
-        Queue.DestroyQueue();
-        connectedUsers.filter((user) => user.id !== client.id);
-        console.log("connectedUsers", connectedUsers);
+    client.on('generateRoomCode', function (data, callback) {
+        console.log("Gc ", data);
+        const roomCode = GeneareRoomCode();
+        RoomCodes.push(roomCode);
+        RQueue.addRoom(roomCode);
+        callback(roomCode);
     });
-    client.on('join', function (data, callback) {
-        const { name } = data?.user;
-        const connectedUser = { id: client.id, name };
-        const userTofind = connectedUsers.find((user) => user.id === client.id || user.name == name);
-        if (userTofind) return;
-        connectedUsers.push(connectedUser);
-        console.log("connectedUsers", connectedUsers);
-        client.emit('users', connectedUsers);
-        console.log(`${data.user.name} joined Room.`);
-        callback(connectedUsers);
-    });
-    client.on('addsong', (data) => {
-        console.log(`Song added to queue: ${data.title} by ${data.by.name}`);
-        Queue.addSong(data);
-        io.emit('queue', Queue.getQueue());
-    })
-    client.on('queueAdded', (data) => {
-        console.log("Queue Added..")
-        const isplaying = Queue.isPlaying();
-        console.log("isplaying:", isplaying);
-        const playing = data?.playing;
-        if (!isplaying || !playing) {
-            console.log("Playing..");
-            Queue.play();
-            Queue.setCurrentSong(Queue.queue[0]);
-            io.emit("setPlaying", Queue.getCurrent());
-            io.emit('play', true);
+    client.on('joinRoom', function (data) {
+        let roomCode;
+        try {
+            roomCode = Number(data.roomCode);
+        } catch (e) {
+            console.log(e);
         }
-    })
-    client.on("Buffered", (data, callback) => {
-        callback(data);
+        if (!RoomCodes.includes(roomCode)) {
+            client.emit("JoinResponse", { error: "Room Not Found" });
+            return;
+        }
+        const User = data.user;
+        const userToFind = RQueue.getMembers(roomCode).find((user) => user.email === User.email) || null;
+        const user = {
+            id: client.id,
+            ...User,
+        }
+        if (userToFind) {
+            userToFind.id = client.id;
+            userToFind.roomcode = roomCode;
+            client.emit("JoinResponse", userToFind);
+            return;
+        }
+        RQueue.setMembers(roomCode, [...RQueue.getMembers(roomCode), user]);
+        if (data?.host) {
+            RQueue.setHost(roomCode, data.host);
+        }
+        const connectedUsers = RQueue.getMembers(roomCode);
+        client.join(roomCode);
+        console.log(connectedUsers);
+        client.emit("JoinResponse", {
+            members: connectedUsers,
+            code: roomCode,
+            host: RQueue.getHost(roomCode),
+        });
     });
-    client.on("NextPlay", (data) => {
-        Queue.removeFirst();
-        Queue.setCurrentSong(Queue.queue[0]);
-        io.emit('queue', Queue.getQueue());
-        io.emit("NewPlayed", Queue.getCurrent());
-    })
-    client.on("getUsers", (data, callback) => {
-        callback(users);
-    })
-    client.on("seek", (data) => {
-        console.log("Seeking to:", data + " seconds");
-        io.emit("seekto", data);
-    })
-    client.on("pauseSync", (d) => {
-        io.emit("pause", d);
-        Queue.playing = false;
-    })
-    client.on("playSync", (d) => {
-        io.emit("play", d);
-        Queue.playing = true;
+    client.on("RoomMembers", function (data, callback) {
+      try {
+          const roomCode = data.roomCode;
+          if (!RoomCodes.includes(roomCode)) {
+              callback({ error: "Room Not Found" });
+              return;
+          }
+          const connectedUsers = RQueue.getMembers(roomCode);
+          callback(connectedUsers);
+      } catch (error) {
+        console.error(error);
+      }
     });
-    client.on("seekToSync", (d) => {
-        io.emit("seekto", d);
+    client.on('seekTo', function (data) {
+        const roomCode = Number(data.code);
+        const percent = Number(data.percent);
+        const song = RQueue.getCurrent(roomCode);
+        if (!song) return;
+        console.log("Code", roomCode);
+        const time = (parseDuration(song?.duration) * percent) / 100;
+        RQueue.setCurrentTime(roomCode, time);
+        io.to(roomCode).emit("PlayerState", {
+            currentTime: RQueue.getCurrentTime(roomCode)
+        })
     })
+    client.on('queueAction', function (data) {
+        console.log(data);
+        const { code, action } = data;
+        const song = data?.song || null;
+        const roomCode = Number(code);
+        switch (action) {
+            case "addSong":
+                RQueue.addSong(roomCode, song);
+                if (!RQueue.getCurrent(roomCode) && RQueue.getQueue(roomCode).length === 1) {
+                    RQueue.setCurrentSong(roomCode, song);
+                    RQueue.play(roomCode);
+                }
+                io.to(roomCode).emit("PlayerState", {
+                    queue: RQueue.getQueue(roomCode),
+                    currentSong: RQueue.getCurrent(roomCode),
+                    history: RQueue.getHistory(roomCode),
+                    playing: RQueue.getPlaying(roomCode),
+                });
+                break;
+            case "removeSong":
+                RQueue.removeFirst(roomCode);
+                io.to(roomCode).emit("PlayerState", {
+                    queue: RQueue.getQueue(roomCode),
+                    currentSong: RQueue.getCurrent(roomCode),
+                    history: RQueue.getHistory(roomCode),
+                    playing: RQueue.getPlaying(roomCode),
+                });
+                break;
+            case "nextSong":
+                RQueue.removeFirst(roomCode);
+                RQueue.setCurrentSong(roomCode, RQueue.getQueue(roomCode)[0]);
+                io.to(roomCode).emit("PlayerState", {
+                    queue: RQueue.getQueue(roomCode),
+                    currentSong: RQueue.getCurrent(roomCode),
+                    history: RQueue.getHistory(roomCode),
+                    playing: RQueue.getPlaying(roomCode),
+                    nextsong: true
+                });
+            default:
+                io.to(roomCode).emit("PlayerState", {
+                    queue: RQueue.getQueue(roomCode),
+                    currentSong: RQueue.getCurrent(roomCode),
+                    playing: RQueue.getPlaying(roomCode),
+                });
+                break;
+        }
+    });
+
 });
+io.on('disconnect', function (data) {
+    console.log('Client disconnected...');
+    Queue.DestroyQueue();
+    connectedUsers.filter((user) => user.id !== client.id);
+    console.log("connectedUsers", connectedUsers);
+});
+
+    // client.on('join', function (data, callback) {
+    //     // console.log("Joining..");
+    //     const name = data.name;
+    //     const email = data.email;
+    //     const image = data.image;
+    //     const type = data.type;
+    //     let role = data.role;
+    //     if (type === "unkown") {
+    //         let randomstr = Math.random().toString(36).substring(7);
+    //         name = randomstr;
+    //     }
+    //     const connectedUser = { id: client.id, name, email, image, type, role };
+    //     const userTofind = connectedUsers.find((user) => user.id === client.id || user.name == name);
+    //     if (userTofind) return;
+    //     connectedUsers.push(connectedUser);
+    //     console.log("connectedUsers", connectedUsers);
+    //     client.emit('users', connectedUsers);
+    //     console.log(`${data.name} joined Room.`);
+    //     callback(connectedUsers);
+    // });

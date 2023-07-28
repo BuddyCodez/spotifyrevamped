@@ -1,66 +1,148 @@
-class QueueManger {
+class RoomQueue {
     constructor() {
-        this.queue = [];
-        this.history = [];
-        this.currentSong = null;
+        this.Room = new Map();
     }
-    addSong(song) {
-        this.queue.push(song);
+    addRoom(roomCode) {
+        this.Room.set(roomCode, {
+            currentTime: 0,
+            queue: [],
+            history: [],
+            currentSong: null,
+            playing: false,
+            members: [],
+            host: '',
+        });
     }
-    removeSpecific(song) {
-        this.queue = this.queue.filter(s => s.name !== song.name);
+    setMembers(roomCode, members) {
+        this.Room.get(roomCode).members = members;
     }
-    getQueue() {
-        return this.queue;
+    getMembers(roomCode) {
+        return this.Room.get(roomCode).members || [];
     }
-    getNextSong() {
-        this.removeFirst();
-        this.setCurrentSong(this.queue[0]);
-        return this.queue[0];
+    setHost(roomCode, host) {
+        this.Room.get(roomCode).host = host;
     }
-    removeFirst() {
-        this.queue.shift();
+    getHost(roomCode) {
+        return this.Room.get(roomCode).host;
     }
-    clearQueue() {
-        this.queue = [];
+    addSong(roomCode, song) {
+        this.Room.get(roomCode).queue.push(song);
     }
-    play() {
-        this.playing = true;
+    removeSpecific(roomCode, song) {
+        this.Room.get(roomCode).queue = this.Room.get(roomCode).queue.filter(s => s.title !== song.title);
     }
-    pause() {
-        this.playing = false;
+    getQueue(roomCode) {
+        return this.Room.get(roomCode).queue;
     }
-    isPlaying() {
-        return this.playing;
+    removeFirst(roomCode) {
+        this.Room.get(roomCode).queue.shift();
     }
-    getHistory() {
-        return this.history;
-    }
-    addHistory(song) {
-        this.history.push(song);
-    }
-    clearHistory() {
-        this.history = [];
-    }
-    setCurrentSong(song) {
-        if (this.currentSong) {
-            this.addHistory(this.currentSong);
+    setCurrentSong(roomCode, song) {
+        if (this.Room.get(roomCode).currentSong) {
+            this.addHistory(roomCode, this.Room.get(roomCode).currentSong);
         }
-        // this.queue.filter(s => s.videoId !== song.videoId);
-        // console.log("Filtered Queue", this.queue)
-        this.currentSong = song;
+        this.Room.get(roomCode).currentSong = song;
         console.log('Current song:', song);
     }
-    getCurrent() {
-        return this.currentSong;
+    setCurrentTime(roomCode, time) {
+        this.Room.get(roomCode).currentTime = time;
     }
-    filterQueue(user) {
-        this.queue = this.queue.filter(s => s.by.name !== user.name);
+    getCurrentTime(roomCode) {
+        return this.Room.get(roomCode).currentTime;
     }
-    DestroyQueue() {
-        this.queue = [];
-        this.currentSong = null;
+    getCurrent(roomCode) {
+        return this.Room.get(roomCode).currentSong || null;
+    }
+    getPlaying(roomCode) {
+        return this.Room.get(roomCode).playing || false;
+    }
+    addHistory(roomCode, song) {
+        this.Room.get(roomCode).history.push(song);
+    }
+    clearHistory(roomCode) {
+        this.Room.get(roomCode).history = [];
+    }
+    getHistory(roomCode) {
+        return this.Room.get(roomCode).history || [];
+    }
+    play(roomCode) {
+        this.Room.get(roomCode).playing = true;
+    }
+    clearQueue(roomCode) {
+        this.Room.get(roomCode).queue = [];
+    }
+    getNextSong(roomCode) {
+        this.removeFirst(roomCode);
+        this.setCurrentSong(roomCode, this.Room.get(roomCode).queue[0]);
+        return this.Room.get(roomCode).queue[0];
     }
 
 }
-module.exports = QueueManger;
+
+module.exports = RoomQueue;
+// class QueueManger {
+//     constructor() {
+//         this.queue = [];
+//         this.history = [];
+//         this.currentSong = null;
+//     }
+//     addSong(song) {
+//         this.queue.push(song);
+//     }
+//     removeSpecific(song) {
+//         this.queue = this.queue.filter(s => s.name !== song.name);
+//     }
+//     getQueue() {
+//         return this.queue;
+//     }
+//     getNextSong() {
+//         this.removeFirst();
+//         this.setCurrentSong(this.queue[0]);
+//         return this.queue[0];
+//     }
+//     removeFirst() {
+//         this.queue.shift();
+//     }
+//     clearQueue() {
+//         this.queue = [];
+//     }
+//     play() {
+//         this.playing = true;
+//     }
+//     pause() {
+//         this.playing = false;
+//     }
+//     isPlaying() {
+//         return this.playing;
+//     }
+//     getHistory() {
+//         return this.history;
+//     }
+//     addHistory(song) {
+//         this.history.push(song);
+//     }
+//     clearHistory() {
+//         this.history = [];
+//     }
+//     setCurrentSong(song) {
+//         if (this.currentSong) {
+//             this.addHistory(this.currentSong);
+//         }
+//         // this.queue.filter(s => s.videoId !== song.videoId);
+//         // console.log("Filtered Queue", this.queue)
+//         this.currentSong = song;
+//         console.log('Current song:', song);
+//     }
+//     getCurrent() {
+//         return this.currentSong;
+//     }
+//     filterQueue(user) {
+//         this.queue = this.queue.filter(s => s.by.name !== user.name);
+//     }
+//     DestroyQueue() {
+//         this.queue = [];
+//         this.currentSong = null;
+//     }
+
+// }
+// module.exports = QueueManger;

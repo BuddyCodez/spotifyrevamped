@@ -11,7 +11,7 @@ export const useQueue = () => useContext(QueueContext);
 
 
 export const QueueProvider = ({ children }) => {
-    const { SetProgress } = useSeekbar();
+    // const { SetProgress } = useSeekbar();
     const { data: session } = useSession();
     const [player, setPlayer] = useState();
     const [queue, setQueue] = useState([]);
@@ -43,15 +43,15 @@ export const QueueProvider = ({ children }) => {
         3: 'Buffering',
         5: 'Song Queued'
     };
-    useEffect(() => {
-        if (socket && session && !hasJoined) {
-            socket.emit('join', session, (data) => {
-                console.log('users', data);
-                setUsers(data);
-            });
-            setHasJoined(true);
-        }
-    }, [socket, session, hasJoined]);
+    // useEffect(() => {
+    //     if (socket && session && !hasJoined) {
+    //         socket.emit('join', session, (data) => {
+    //             console.log('users', data);
+    //             setUsers(data);
+    //         });
+    //         setHasJoined(true);
+    //     }
+    // }, [socket, session, hasJoined]);
     async function getTime() {
         if (player) {
             let time = await player.getCurrentTime();
