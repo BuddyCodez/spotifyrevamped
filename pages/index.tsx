@@ -139,7 +139,7 @@ export default function IndexPage() {
 				let roomUsersLength = RoomUsers?.length || 1;
 				console.log("currPS", currentTime);
 				if ((currentTime - 5 > getCurrentTime() ||
-					currentTime + 5 < getCurrentTime()) && roomUsersLength > 1) {
+					currentTime + 5 < getCurrentTime()) && currentTime !== 0 ) {
 					Player.value.seekTo(currentTime);
 					room && socket.emit("seekTo", {
 						code: room,
