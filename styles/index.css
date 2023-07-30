@@ -238,11 +238,9 @@ body {
   justify-content: center;
   align-items: center;
   position: fixed;
-    top: 70px;
-    right: 34px;
-    width: 200px;
-    
+  top: 74px;
+  right: 34px;
+  width: 250px;
   padding: 10px;
-
   z-index: 99999;
 }

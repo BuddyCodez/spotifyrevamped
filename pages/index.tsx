@@ -1,34 +1,50 @@
-import NextLink from "next/link";
-import { Link } from "@nextui-org/link";
-import { Snippet } from "@nextui-org/snippet";
-import { Code } from "@nextui-org/code";
-import { button as buttonStyles } from "@nextui-org/theme";
-import { siteConfig } from "@/config/site";
-import { title, subtitle } from "@/components/primitives";
-import { DiscordIcon, GithubIcon } from "@/components/icons";
+import { title } from "@/components/primitives";
+import { DiscordIcon } from "@/components/icons";
 import DefaultLayout from "@/layouts/default";
-import { Button, Divider, Image, Dropdown, DropdownItem, DropdownTrigger, DropdownMenu, Avatar, DropdownSection, User, Input } from "@nextui-org/react";
-import { Popover, PopoverTrigger, PopoverContent } from "@nextui-org/react";
-
+import { Button, Image, Divider } from "@nextui-org/react";
+import TextField from '@mui/material/TextField';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
+import DialogTitle from '@mui/material/DialogTitle';
 import SongPlayer from "@/components/SongCard";
 import SongList from "@/components/Song";
-import { useSession, signIn, signOut } from "next-auth/react"
-import { ThemeSwitch } from "@/components/theme-switch";
-import { FaJoint, FaPlus, FaUser } from "react-icons/fa";
-import { PlayerContextType, QueueStore, playerStore, usePlayer } from "@/store/player";
-import { useContext, useEffect, useState } from "react";
+import { useSession, signIn, } from "next-auth/react"
+import { PlayerContextType, QueueStore,  usePlayer } from "@/store/player";
+import React, { useContext, useEffect, useState } from "react";
 import modalStore from "@/store/modal";
 import { SocketContext } from "@/utils/SocketProvider";
 import { UserContextType, useUsers } from "@/store/users";
 import { RoomContextType, useRoom } from "@/store/room";
-import { GrClose } from "react-icons/gr";
+import { FaCopy, FaPlus, FaUser } from "react-icons/fa";
+import { styled } from '@mui/material/styles';
+import Badge from '@mui/material/Badge';
+import List from '@mui/material/List';
+import ListItem from '@mui/material/ListItem'
+import ListItemText from '@mui/material/ListItemText';
+import ListItemAvatar from '@mui/material/ListItemAvatar';
+import Avatar from '@mui/material/Avatar';
+import Typography from '@mui/material/Typography';
+import { BiGroup } from "react-icons/bi";
+import { MdGroupAdd } from "react-icons/md";
+import Snackbar from '@mui/material/Snackbar';
+import MuiAlert, { AlertProps } from '@mui/material/Alert';
+const Alert = React.forwardRef<HTMLDivElement, AlertProps>(function Alert(
+	props,
+	ref,
+) {
+	return <MuiAlert elevation={6} ref={ref} variant="filled" {...props} />;
+});
+
+
 export default function IndexPage() {
 	const socket = useContext(SocketContext);
 	const Queue: any = QueueStore();
 	const [menu, setmenu] = useState(false);
 	const Modalstore: any = modalStore();
 	const { data: session } = useSession();
-	const { Player, setcurrent, value, getCurrentTime } = usePlayer() as PlayerContextType;
+	const { Player, setcurrent, value, getCurrentTime, dragging } = usePlayer() as PlayerContextType;
 	const { room,
 		setRoom,
 		hasJoinedRoom,
@@ -40,41 +56,42 @@ export default function IndexPage() {
 	const { users,
 		addKnownUser,
 		addAknownUser } = useUsers() as UserContextType;
-	const onYouTubeIframeAPIReady = () => {
-		console.log("ready");
-		Player.setPlayer(
-			new YT.Player("player", {
-				height: "600",
-				width: "600",
-				playerVars: {
-					autoplay: 1,
-					controls: 0,
-					autohide: 1,
-					wmode: "opaque",
-					origin: window.location.href,
-				},
-				videoId: "DArzZ3RvejU",
-				events: Player.events,
-			}), Queue.currentSong || false
-		);
+	const [open, setOpen] = useState(false);
+	const [Open, SetOpen] = useState(false);
+	const [err, seterr] = useState("");
+	const handleClick = () => {
+		SetOpen(true);
 	};
-	
-	const AddUsers = (data: any) => {
-		console.log(data);
-		if (Array.isArray(data)) {
-			data.forEach((user: any) => {
-				if (user.type == "known") {
-					addKnownUser(user);
-				} else {
-					addAknownUser();
-				}
-			});
+
+	const HandleClose = (event?: React.SyntheticEvent | Event, reason?: string) => {
+		if (reason === 'clickaway') {
+			return;
 		}
-	}
+
+		SetOpen(false);
+	};
+
 
 	useEffect(() => {
 		// @ts-ignore
-		window.onYouTubeIframeAPIReady = onYouTubeIframeAPIReady;
+		window.onYouTubeIframeAPIReady = () => {
+			console.log("Player Ready!");
+			Player.setPlayer(
+				new window.YT.Player("player", {
+					height: "600",
+					width: "600",
+					playerVars: {
+						autoplay: 1,
+						controls: 0,
+						autohide: 1,
+						wmode: "opaque",
+						origin: window.location.href,
+					},
+					videoId: "DArzZ3RvejU",
+					events: Player.events,
+				}), Queue.currentSong || false
+			);
+		};
 		const scriptTag = document.createElement("script");
 		scriptTag.src = "https://www.youtube.com/iframe_api";
 		const firstScriptTag = document.getElementsByTagName("script")[0];
@@ -95,6 +112,8 @@ export default function IndexPage() {
 					setRoom(code);
 					setHost(host);
 					setUsers(members);
+					if (host === session?.user?.name) return;
+					socket.emit("getPlayer", { code: code });
 				})
 			}
 
@@ -118,8 +137,8 @@ export default function IndexPage() {
 				}
 				let currentTime = data?.currentTime || 0;
 				console.log("currPS", currentTime);
-				if (currentTime - 5 > getCurrentTime() ||
-					currentTime + 5 < getCurrentTime()) {
+				if ((currentTime - 5 > getCurrentTime() ||
+					currentTime + 5 < getCurrentTime()) && RoomUsers?.length > 1) {
 					Player.value.seekTo(currentTime);
 					room && socket.emit("seekTo", {
 						code: room,
@@ -130,7 +149,25 @@ export default function IndexPage() {
 			});
 		}
 	}, [socket, Player.value])
-
+	useEffect(() => {
+		if (Player.value) {
+			Player.value.addEventListener('onStateChange', (event: any) => {
+				if (event.data == 1) {
+					setInterval(() => {
+						if (dragging) return;
+						const currentPos = Player.value.getCurrentTime();
+						const duration = Player.value.getDuration();
+						const percent = (currentPos / duration) * 100;
+						// console.log(percent);
+						if (room) {
+							socket.emit("updateTime", { code: room, time: percent });
+							// update time
+						}
+					}, 1000);
+				}
+			})
+		}
+	}, [Player])
 
 	// useEffect(() => {
 	// 	if (Queue && !Queue.currentSong && Queue.queue.length > 0) {
@@ -149,12 +186,20 @@ export default function IndexPage() {
 		return true;
 	}
 	const JoinRoom = () => {
-		const elm = document.getElementById("roomCode") as HTMLInputElement;
+		handleClose();
+		const elm = document.getElementById("RoomCode-required") as HTMLInputElement;
 		if (!elm || !socket) return;
 		const roomCode = elm.value;
 		if (!roomCode) return;
 		socket.emit('joinRoom', { roomCode, user: session?.user });
 	}
+	const handleClickOpen = () => {
+		setOpen(true);
+	};
+
+	const handleClose = () => {
+		setOpen(false);
+	};
 	const LoginBtn = () => {
 		return (<>
 			<Button color="default" variant="shadow"
@@ -174,108 +219,164 @@ export default function IndexPage() {
 			</Button>
 		</>)
 	}
+	const StyledBadge = styled(Badge)(({ theme }) => ({
+		'& .MuiBadge-badge': {
+			backgroundColor: "#00A86B",
+			color: "#00A86B",
+			boxShadow: `0 0 0 2px ${theme?.palette?.background.paper}`,
+			'&::after': {
+				position: 'absolute',
+				top: 0,
+				left: 0,
+				width: '100%',
+				height: '100%',
+				borderRadius: '50%',
+				animation: 'ripple 1.2s infinite ease-in-out',
+				border: '1px solid currentColor',
+				content: '""',
+			},
+		},
+		'@keyframes ripple': {
+			'0%': {
+				transform: 'scale(.8)',
+				opacity: 1,
+			},
+			'100%': {
+				transform: 'scale(2.4)',
+				opacity: 0,
+			},
+		},
+	}));
+	const copyRoomCode = () => {
+		if (room) {
+			try {
+				navigator.clipboard.writeText(room);
+			} catch {
+				console.log("Error Copying");
+				seterr("Cant copy room code, try again later.");
+			}
+			handleClick();
+		}
+	}
 	const UserView = ({ session }: any) => {
 		return (<>
-			<Avatar
-				isBordered
-				color="primary"
-				as="button"
-				className="transition-transform"
-				src={session.user.image}
-				onClick={() => setmenu(!menu)}
-			/>
-			{menu && <div className="flex flex-col mydropdown gap-1 bg-black rounded-lg">
-				<div className="my-2">
-					<User
-						name={session.user.name}
-						description={session.user.email}
-						classNames={{
-							name: "text-default-600",
-							description: "text-default-500",
-						}}
-						avatarProps={{
-							size: "sm",
-							src: session.user.image,
-						}}
-					/>
-				</div>
-				<Divider />
-				<Button color="default" variant="shadow"
+			<StyledBadge
+				overlap="circular"
+				anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+				variant="dot"
 
-					onPress={() => {
-						signIn("discord")
-					}}
-					startIcon={
-						<DiscordIcon color="black" />
-					}
-					style={{
-						fontFamily: 'Josefin Sans',
-						fontWeight: 500,
-						letterSpacing: "0.05em",
+			>
+				<Avatar alt={session?.user?.name} src={session?.user?.image} onClick={() => setmenu(!menu)} />
+			</StyledBadge>
+
+			{menu && <div className="flex flex-col mydropdown gap-1 bg-black rounded-lg">
+				<List sx={{ width: '100%', maxWidth: 360, bgcolor: 'black' }}>
+					<ListItem alignItems="flex-start">
+						<ListItemAvatar>
+							<Avatar alt={session?.user?.name} src={session?.user?.image} />
+						</ListItemAvatar>
+						<ListItemText
+							primary={session?.user?.name}
+							secondary={
+								<>
+									<Typography
+										sx={{ display: 'inline' }}
+										component="span"
+										variant="body2"
+										color="gray"
+									>
+										{session?.user?.email}
+									</Typography>
+
+								</>
+							}
+						/>
+					</ListItem>
+					<Divider style={{
 						width: "100%",
-					}}
-				>Change Account</Button>
-				<Button color="default" variant="shadow"
-					style={{
-						width: "100%",
-					}}
-					onPress={createRoom}>
-					Create Room
-				</Button>
-				<Button color="default" variant="shadow"
-					style={{
-						width: "100%",
-					}}
-					onPress={() => {
-						const elm = document.getElementById("jtarget");
-						elm?.classList.remove("hid");
-					}}
-				>
-					Join Room
-				</Button>
-				<p className="flex flex-col">
-					{room && <span>Room code: {room}</span>}
-					{host && <span>host: {host}</span>}
-				</p>
+						margin: "0 auto",
+						height: "1px",
+						background: "gray"
+					}}  />
+					<ListItem>
+						<ListItemText>
+							<Button color="primary" variant="shadow"
+								startIcon={<FaUser />}
+								fullWidth
+								onPress={() => signIn("discord")}
+							>
+								Change Account
+							</Button>
+						</ListItemText>
+					</ListItem>
+					<ListItem>
+						<ListItemText>
+							<Button color="primary" variant="shadow"
+								startIcon={<BiGroup />}
+								onPress={createRoom}
+								fullWidth
+							>
+								Create Room
+							</Button>
+						</ListItemText>
+					</ListItem>
+					<ListItem>
+						<ListItemText>
+							<Button color="primary" variant="shadow"
+								fullWidth
+								startIcon={<MdGroupAdd />}
+								onPress={handleClickOpen}
+							>
+								Join Room
+							</Button>
+						</ListItemText>
+					</ListItem>
+					{room && host && <ListItem>
+						<ListItemText
+							primary={
+								<Typography
+									sx={{ display: 'inline' }}
+									component="span"
+									variant="body2"
+									color="gray"
+								>
+									<span className="flex gap-4 justify-center items-center">
+										Host: {host}
+									</span>
+								</Typography>
+							}
+							secondary={
+								<>
+									<Typography
+										sx={{ display: 'inline' }}
+										component="span"
+										variant="body2"
+										color="gray"
+									>
+										<span className="flex gap-4 justify-center items-center">
+											Room Code: {room}
+											<Button startIcon={
+												<FaCopy />
+											} isIconOnly
+												radius="full"
+												style={{
+													background: "black"
+												}}
+												onPress={copyRoomCode}
+											/>
+										</span>
+									</Typography>
+
+								</>
+							}
+						>
+
+						</ListItemText>
+					</ListItem>}
+				</List>
 			</div>}
 
-			<div className="hid JoinContainer p-3" id="jtarget">
-				<div className="flex flex-col items-center gap-3 w-full h-full">
-					<div className="flex w-full justify-end">
-						<Button isIconOnly endIcon={<GrClose color="white" />}
-							radius="full"
-							color="primary"
-							onPress={() => {
-								const elm = document.getElementById("jtarget");
-								elm?.classList?.add("hid");
-							}}
-						/>
-					</div>
-					<div className="flex flex-col h-full w-full gap-5 justify-center items-center">
-						<h1 className="text-xl">Enter Room code:</h1>
 
-						<Input type="tel" inputMode="numeric"
-							color="primary"
-							isClearable
-							variant="faded"
-							label="Room Code"
-							required
-							id="roomCode"
-						/>
-						<Button
-							type="submit"
-							variant="bordered"
-							color="primary"
-							startIcon={
-								<FaUser />
-							}
-							onPress={JoinRoom}
-						>
-							Join Room
-						</Button>
-					</div>
-				</div>
-			</div>
 		</>)
 
 
@@ -363,6 +464,51 @@ export default function IndexPage() {
 					) : (
 						<LoginBtn />
 					)}
+					<Dialog open={open} onClose={handleClose} style={{
+						color: "white"
+					}}>
+						<DialogTitle style={{
+							background: "var(--c4)",
+							color: "white"
+
+						}}>Join a Room</DialogTitle>
+						<DialogContent style={{
+							background: "var(--c4)",
+							color: "white"
+
+						}}>
+							<DialogContentText color="white">
+								Enter Room Code to Join your desired room.
+							</DialogContentText>
+							<TextField
+								style={{
+									color: "white",
+
+								}}
+
+								autoFocus
+								margin="dense"
+								id="RoomCode-required"
+								label="RoomCode"
+								type="text"
+								fullWidth
+								variant="filled"
+							/>
+						</DialogContent>
+						<DialogActions style={{
+							background: "var(--c4)"
+						}}>
+							<Button onPress={handleClose}>Cancel</Button>
+							<Button onPress={JoinRoom}>
+								Join
+							</Button>
+						</DialogActions>
+					</Dialog>
+					<Snackbar open={Open} autoHideDuration={6000} onClose={HandleClose}>
+						<Alert onClose={HandleClose} severity={err ? "error": "success"} sx={{ width: '100%' }}>
+							{err ? err : "Room Code Copied to Clipboard"}
+						</Alert>
+					</Snackbar>
 				</div>
 			</section>
 		</DefaultLayout>

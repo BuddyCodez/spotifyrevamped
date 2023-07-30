@@ -71,7 +71,7 @@ io.on('connection', function (client) {
         }
         const connectedUsers = RQueue.getMembers(roomCode);
         client.join(roomCode);
-        console.log(connectedUsers);
+        // console.log(connectedUsers);
         client.emit("JoinResponse", {
             members: connectedUsers,
             code: roomCode,
@@ -79,17 +79,17 @@ io.on('connection', function (client) {
         });
     });
     client.on("RoomMembers", function (data, callback) {
-      try {
-          const roomCode = data.roomCode;
-          if (!RoomCodes.includes(roomCode)) {
-              callback({ error: "Room Not Found" });
-              return;
-          }
-          const connectedUsers = RQueue.getMembers(roomCode);
-          callback(connectedUsers);
-      } catch (error) {
-        console.error(error);
-      }
+        try {
+            const roomCode = data.roomCode;
+            if (!RoomCodes.includes(roomCode)) {
+                callback({ error: "Room Not Found" });
+                return;
+            }
+            const connectedUsers = RQueue.getMembers(roomCode);
+            callback(connectedUsers);
+        } catch (error) {
+            console.error(error);
+        }
     });
     client.on('seekTo', function (data) {
         const roomCode = Number(data.code);
@@ -102,7 +102,31 @@ io.on('connection', function (client) {
         io.to(roomCode).emit("PlayerState", {
             currentTime: RQueue.getCurrentTime(roomCode)
         })
-    })
+    });
+    client.on("getPlayer", function (data, callback) {
+        const roomCode = Number(data?.code);
+        const song = RQueue.getCurrent(roomCode);
+        console.log(RQueue.getPlaying(roomCode));
+        console.log("RoomCode:", roomCode);
+        if (RQueue.getPlaying(roomCode)) {
+            console.log(roomCode, client.id);
+            io.to(roomCode).emit("PlayerState", {
+                currentTime: RQueue.getCurrentTime(roomCode),
+                currentSong: song,
+                playing: RQueue.getPlaying(roomCode),
+                queue: RQueue.getQueue(roomCode),
+            })
+        }
+    });
+    client.on('updateTime', function (data) {
+        if (!data?.code) {
+            // console.log("No Code Found");
+            return;
+        }
+        const roomCode = Number(data.code);
+        const time = Number(data.time);
+        RQueue.setCurrentTime(roomCode, time);
+    });
     client.on('queueAction', function (data) {
         console.log(data);
         const { code, action } = data;
@@ -114,6 +138,8 @@ io.on('connection', function (client) {
                 if (!RQueue.getCurrent(roomCode) && RQueue.getQueue(roomCode).length === 1) {
                     RQueue.setCurrentSong(roomCode, song);
                     RQueue.play(roomCode);
+                    console.log("Room:", roomCode);
+                    console.log("Playing State:", RQueue.getPlaying(roomCode));
                 }
                 io.to(roomCode).emit("PlayerState", {
                     queue: RQueue.getQueue(roomCode),

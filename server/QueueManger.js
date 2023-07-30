@@ -48,13 +48,13 @@ class RoomQueue {
         this.Room.get(roomCode).currentTime = time;
     }
     getCurrentTime(roomCode) {
-        return this.Room.get(roomCode).currentTime;
+        return this.Room.get(roomCode)?.currentTime || 0;
     }
     getCurrent(roomCode) {
-        return this.Room.get(roomCode).currentSong || null;
+        return this.Room.get(roomCode)?.currentSong || null;
     }
     getPlaying(roomCode) {
-        return this.Room.get(roomCode).playing || false;
+        return this.Room.get(roomCode)?.playing || false;
     }
     addHistory(roomCode, song) {
         this.Room.get(roomCode).history.push(song);

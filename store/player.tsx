@@ -1,5 +1,8 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { create } from 'zustand'
+import { RoomContextType, useRoom } from './room';
+import { SocketContext } from '@/utils/SocketProvider';
+
 interface Song {
     title: string;
     artist: string;
@@ -41,10 +44,10 @@ const playerStore = create((set) => ({
     setCurrentTime: (time: number) => set((state: any) => ({ playerCurrentTime: time })),
     setPlayer: (player: any, current: any) => set((state: any) => {
         if (state.value) return;
-        setTimeout(() => {
-            console.log(player);
-            player?.stopVideo();
-        }, 1500);
+        // setTimeout(() => {
+        //     console.log(player);
+        //     player?.stopVideo();
+        // }, 2000);
         return { value: player };
     }),
     pause: () => set({ playing: false }),
@@ -61,8 +64,17 @@ const playerStore = create((set) => ({
                 set({ playing: false });
                 break;
             case 1:
-                set({ playing: true });
+                // get players video id
+
                 console.log('started');
+                set((state: any) => {
+                    state.playing = true;
+                    console.log(state.value.getVideoData())
+                    if (state.value.getVideoData().video_id == "DArzZ3RvejU") {
+                        state.value.stopVideo();
+                    }
+                    return { playing: true }
+                })
                 break;
             case 2:
                 set({ playing: false });
@@ -75,7 +87,8 @@ const playerStore = create((set) => ({
         }
     },
     play: (id: any) => set((state: any) => {
-        console.log("Playing", id || state.value.getVideoData()?.title);
+
+        console.log("Playing", id || state.value.getVideoData());
         state.playing = true;
         return state.value.playVideo();
     }),
@@ -97,6 +110,7 @@ interface PlayerContextType {
 const PlayerContext = createContext<PlayerContextType | null>(null);
 const usePlayer = () => useContext(PlayerContext);
 const PlayerProvider = ({ children }: any) => {
+
     const [value, setValue] = useState(0);
     const [dragging, SetDragging] = useState(false);
     const Player: any = playerStore();
@@ -113,9 +127,11 @@ const PlayerProvider = ({ children }: any) => {
                         const currentPos = Player.value.getCurrentTime();
                         const duration = Player.value.getDuration();
                         const percent = (currentPos / duration) * 100;
+
                         setValue(percent);
                         Player.setCurrentTime(percent);
                     }, 1000);
+
                 }
                 // if ended
                 if (event.data === 0) {
